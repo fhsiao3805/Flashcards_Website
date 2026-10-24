@@ -254,3 +254,11 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 /* Shuffle controls on the study page */
 .shuffle-bar { justify-content: flex-end; margin-bottom: 0.75rem; }
 .badge-shuffle { background: rgba(79, 70, 229, 0.15); color: var(--primary); }
+
+/* Deck description */
+.deck-info { margin: 0.5rem 0 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+.deck-info p { margin: 0; overflow-wrap: anywhere; }
+.deck-info .deck-description { flex-basis: 100%; color: var(--muted); }
+.deck-course { margin: 0.2rem 0 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.settings-section { border-top: 1px solid var(--border); padding-top: 1rem; }
+.optional { font-weight: 400; font-size: 0.85rem; }
