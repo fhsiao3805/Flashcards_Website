@@ -216,3 +216,39 @@ def test_shuffled_order_is_stable_within_a_pass(app, client):
     again, _ = current_front(client, deck_id)  # reloading doesn't reshuffle
     assert first == again
     assert client.post(f"/decks/{deck_id}/study/shuffle", data={"mode": "bogus"}).status_code == 400
+
+
+def test_deck_description_is_optional_and_editable(app, client):
+    register(client)
+    deck_id = make_deck(app, client, cards=0)
+    resp = client.post(f"/decks/{deck_id}/details", data={
+        "course": "CSEN 174", "professor": "Prof. Smith", "description": "Intro to software engineering",
+    }, follow_redirects=True)
+    assert b"Deck description saved" in resp.data
+    assert b"Intro to software engineering" in resp.data
+    assert b"Prof. Smith" in client.get("/decks").data
+
+    # Everything can be cleared again.
+    client.post(f"/decks/{deck_id}/details", data={"course": "", "professor": "", "description": ""})
+    with app.app_context():
+        deck = db.session.get(Deck, deck_id)
+        assert (deck.course, deck.professor, deck.description) == (None, None, None)
+
+    resp = client.post(f"/decks/{deck_id}/details", data={"description": "x" * 501}, follow_redirects=True)
+    assert b"limited to 500" in resp.data
+
+
+def test_existing_database_gets_new_deck_columns(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE decks (id INTEGER PRIMARY KEY, name VARCHAR(100) NOT NULL, "
+                 "user_id INTEGER NOT NULL, created_at DATETIME NOT NULL)")
+    conn.commit()
+    conn.close()
+
+    create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{path}"})
+    conn = sqlite3.connect(path)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(decks)")}
+    conn.close()
+    assert {"professor", "course", "description"} <= columns

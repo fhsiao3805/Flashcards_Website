@@ -9,11 +9,14 @@ from flask_login import LoginManager, current_user, login_required, login_user, 
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from models import Card, Deck, User, db
+from models import Card, Deck, User, add_missing_columns, db
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 MIN_PASSWORD_LENGTH = 8
 MAX_DECK_NAME = 100
+MAX_PROFESSOR = 100
+MAX_COURSE = 150
+MAX_DESCRIPTION = 500
 MAX_CARD_TEXT = 2000
 MAX_CARDS_PER_SUBMIT = 200
 
@@ -60,6 +63,7 @@ def create_app(config=None):
 
     with app.app_context():
         db.create_all()
+        add_missing_columns()
 
     register_routes(app)
     return app
@@ -227,6 +231,29 @@ def register_routes(app):
             deck.name = name
             db.session.commit()
             flash("Deck renamed.", "success")
+        return redirect(url_for("deck_detail", deck_id=deck.id))
+
+    @app.post("/decks/<int:deck_id>/details")
+    @login_required
+    def update_deck_details(deck_id):
+        deck = get_owned_deck(deck_id)
+        professor = request.form.get("professor", "").strip()
+        course = request.form.get("course", "").strip()
+        description = request.form.get("description", "").strip()
+
+        if len(professor) > MAX_PROFESSOR:
+            flash(f"Professor name is limited to {MAX_PROFESSOR} characters.", "error")
+        elif len(course) > MAX_COURSE:
+            flash(f"Course name is limited to {MAX_COURSE} characters.", "error")
+        elif len(description) > MAX_DESCRIPTION:
+            flash(f"Description is limited to {MAX_DESCRIPTION} characters.", "error")
+        else:
+            # All fields are optional; blank clears them.
+            deck.professor = professor or None
+            deck.course = course or None
+            deck.description = description or None
+            db.session.commit()
+            flash("Deck description saved.", "success")
         return redirect(url_for("deck_detail", deck_id=deck.id))
 
     @app.post("/decks/<int:deck_id>/delete")

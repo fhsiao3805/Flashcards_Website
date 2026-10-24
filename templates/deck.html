@@ -8,6 +8,13 @@
   <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
     · {{ deck.known_count }} marked known
     · {{ deck.cards|length - deck.known_count }} left to study</p>
+  {% if deck.course or deck.professor or deck.description %}
+    <div class="deck-info">
+      {% if deck.course %}<p><span class="label">Course</span>{{ deck.course }}</p>{% endif %}
+      {% if deck.professor %}<p><span class="label">Professor</span>{{ deck.professor }}</p>{% endif %}
+      {% if deck.description %}<p class="deck-description pre">{{ deck.description }}</p>{% endif %}
+    </div>
+  {% endif %}
 </div>
 
 <div class="row actions">
@@ -88,6 +95,23 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input name="name" value="{{ deck.name }}" maxlength="100" required>
     <button type="submit" class="btn">Rename</button>
+  </form>
+
+  <form method="post" action="{{ url_for('update_deck_details', deck_id=deck.id) }}" class="stack settings-section">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3>Description <span class="muted optional">(all fields optional)</span></h3>
+    <div class="two-col">
+      <label>Course name
+        <input name="course" value="{{ deck.course or '' }}" maxlength="150" placeholder="e.g. CSEN 174: Software Engineering">
+      </label>
+      <label>Professor
+        <input name="professor" value="{{ deck.professor or '' }}" maxlength="100" placeholder="e.g. Prof. Smith">
+      </label>
+    </div>
+    <label>Course description
+      <textarea name="description" rows="3" maxlength="500" placeholder="A short description of the course">{{ deck.description or '' }}</textarea>
+    </label>
+    <div><button type="submit" class="btn">Save description</button></div>
   </form>
   <form method="post" action="{{ url_for('delete_deck', deck_id=deck.id) }}"
         data-confirm="Delete “{{ deck.name }}” and all its cards? This cannot be undone.">

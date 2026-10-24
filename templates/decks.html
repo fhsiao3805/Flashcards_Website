@@ -14,6 +14,9 @@
     {% for deck in decks %}
       <li class="panel deck-tile">
         <a href="{{ url_for('deck_detail', deck_id=deck.id) }}" class="deck-name">{{ deck.name }}</a>
+        {% if deck.course or deck.professor %}
+          <p class="deck-course">{{ deck.course or '' }}{% if deck.course and deck.professor %} · {% endif %}{{ deck.professor or '' }}</p>
+        {% endif %}
         <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
           · {{ deck.known_count }} known</p>
         <div class="row">

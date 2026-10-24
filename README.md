@@ -5,7 +5,7 @@ A Flask web app for making and studying flashcards. Each user has an account and
 ## Features
 
 - **The login page is the home page** (`/`). New users can sign up at `/register`. Passwords are stored as salted hashes.
-- **Decks:** create, rename, and delete decks of flashcards.
+- **Decks:** create, rename, and delete decks of flashcards. Under **Deck settings**, you can add an optional **description**: the course name, the professor's name, and a short course description. These appear at the top of the deck page, and the course and professor also appear on the deck's tile in **My decks**.
 - **Cards:** each card has a front and a back. To add cards, fill in the front and back and click **+ Add to list** (or press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>). Repeat for as many cards as you like. They appear as a numbered list that you can remove items from. Then click **Add cards** to save the whole list to the deck at once. Cards can also be edited or deleted later.
 - **Study mode:** one card at a time. Click the card (or press <kbd>Space</kbd>) to flip it, then mark it:
   - **✓ I know this** (<kbd>2</kbd>): the card is saved as *known* and is skipped every time you study this deck again.
@@ -49,7 +49,7 @@ pip install -r requirements-dev.txt
 flask --app app run --debug
 ```
 
-Open http://127.0.0.1:5000, create an account, and start making decks. With no `DATABASE_URL` set, the app creates a SQLite file at `instance/flashcards.db`. Tables are created automatically on startup.
+Open http://127.0.0.1:5000, create an account, and start making decks. With no `DATABASE_URL` set, the app creates a SQLite file at `instance/flashcards.db`. Tables are created automatically on startup. If a database was created by an older version of the app, any new optional columns (such as the deck description fields) are added automatically on startup. Your data is kept.
 
 ### Running the tests
 
