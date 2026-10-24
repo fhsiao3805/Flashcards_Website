@@ -111,6 +111,10 @@
     <label>Course description
       <textarea name="description" rows="3" maxlength="500" placeholder="A short description of the course">{{ deck.description or '' }}</textarea>
     </label>
+    <label class="checkbox">
+      <input type="checkbox" name="is_public" value="1" {% if deck.is_public %}checked{% endif %}>
+      Show this deck in Find Other Decks so other users can view and copy it
+    </label>
     <div><button type="submit" class="btn">Save description</button></div>
   </form>
   <form method="post" action="{{ url_for('delete_deck', deck_id=deck.id) }}"

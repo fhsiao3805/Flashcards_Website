@@ -262,3 +262,16 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 .deck-course { margin: 0.2rem 0 0; font-size: 0.9rem; overflow-wrap: anywhere; }
 .settings-section { border-top: 1px solid var(--border); padding-top: 1rem; }
 .optional { font-weight: 400; font-size: 0.85rem; }
+
+/* Find Other Decks */
+.search-form input[type="search"] { flex: 1; min-width: 200px; }
+select {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+.deck-snippet { margin: 0.4rem 0 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.pagination { margin-top: 1rem; }

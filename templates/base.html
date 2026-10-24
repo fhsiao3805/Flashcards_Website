@@ -12,6 +12,7 @@
     {% if current_user.is_authenticated %}
       <nav>
         <a href="{{ url_for('decks') }}">My decks</a>
+        <a href="{{ url_for('find_decks') }}">Find Other Decks</a>
         <span class="muted">{{ current_user.username }}</span>
         <form method="post" action="{{ url_for('logout') }}" class="inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

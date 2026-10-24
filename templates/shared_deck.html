@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ deck.name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('find_decks', q=request.args.get('q'), field=request.args.get('field'), page=request.args.get('page')) }}">← Find Other Decks</a></p>
+
+<div class="deck-header">
+  <h1>{{ deck.name }}</h1>
+  <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }} · shared by {{ deck.owner.username }}</p>
+  {% if deck.course or deck.professor or deck.description %}
+    <div class="deck-info">
+      {% if deck.course %}<p><span class="label">Course</span>{{ deck.course }}</p>{% endif %}
+      {% if deck.professor %}<p><span class="label">Professor</span>{{ deck.professor }}</p>{% endif %}
+      {% if deck.description %}<p class="deck-description pre">{{ deck.description }}</p>{% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<form method="post" action="{{ url_for('copy_deck', deck_id=deck.id) }}" class="row actions">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-primary">Copy to my decks</button>
+  <span class="muted hint">Copying lets you study, edit, and add to your own version of this deck.</span>
+</form>
+
+<section>
+  <h2>Cards</h2>
+  <ul class="card-list">
+    {% for card in deck.cards %}
+      <li class="panel card-row">
+        <div class="card-sides">
+          <div><span class="label">Front</span><p class="pre">{{ card.front }}</p></div>
+          <div><span class="label">Back</span><p class="pre">{{ card.back }}</p></div>
+        </div>
+      </li>
+    {% else %}
+      <li class="empty">This deck has no cards.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
