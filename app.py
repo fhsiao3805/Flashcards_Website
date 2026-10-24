@@ -13,6 +13,7 @@ USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 MIN_PASSWORD_LENGTH = 8
 MAX_DECK_NAME = 100
 MAX_CARD_TEXT = 2000
+MAX_CARDS_PER_SUBMIT = 200
 
 csrf = CSRFProtect()
 login_manager = LoginManager()
@@ -216,15 +217,31 @@ def register_routes(app):
     @login_required
     def add_card(deck_id):
         deck = get_owned_deck(deck_id)
-        front = request.form.get("front", "").strip()
-        back = request.form.get("back", "").strip()
-        error = validate_card_text(front, back)
+        fronts = request.form.getlist("front")
+        backs = request.form.getlist("back")
+        if len(fronts) != len(backs):
+            abort(400)
+
+        # Pairs left completely blank (e.g. the empty entry boxes) are ignored.
+        pairs = [(f.strip(), b.strip()) for f, b in zip(fronts, backs) if f.strip() or b.strip()]
+        error = None
+        if not pairs:
+            error = "Add at least one card to the list first."
+        elif len(pairs) > MAX_CARDS_PER_SUBMIT:
+            error = f"You can add up to {MAX_CARDS_PER_SUBMIT} cards at a time."
+        else:
+            for i, (front, back) in enumerate(pairs, start=1):
+                error = validate_card_text(front, back)
+                if error:
+                    error = f"Card {i}: {error}" if len(pairs) > 1 else error
+                    break
+
         if error:
             flash(error, "error")
         else:
-            db.session.add(Card(deck=deck, front=front, back=back))
+            db.session.add_all(Card(deck=deck, front=f, back=b) for f, b in pairs)
             db.session.commit()
-            flash("Card added.", "success")
+            flash(f"Added {len(pairs)} card{'' if len(pairs) == 1 else 's'}.", "success")
         return redirect(url_for("deck_detail", deck_id=deck.id) + "#add-card")
 
     @app.route("/cards/<int:card_id>/edit", methods=["GET", "POST"])

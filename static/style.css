@@ -232,3 +232,21 @@ kbd {
 }
 .modal::backdrop { background: rgba(15, 17, 25, 0.55); }
 .modal h2 { margin-top: 0; }
+
+/* Pending cards on the deck page */
+h3 { font-size: 1rem; margin: 0 0 0.5rem; }
+.pending-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; counter-reset: pending; }
+.pending-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  counter-increment: pending;
+}
+.pending-item::before { content: counter(pending) "."; font-weight: 700; color: var(--muted); }
+.pending-item .card-sides { flex: 1; }
+@media (max-width: 600px) { .pending-item { flex-wrap: wrap; } }
+.field-error { color: var(--danger); margin: 0; font-size: 0.9rem; }

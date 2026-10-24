@@ -144,3 +144,29 @@ def test_csrf_enforced_when_enabled(tmp_path):
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'c.db'}"})
     resp = app.test_client().post("/", data={"username": "x", "password": "y"})
     assert resp.status_code == 302  # rejected and redirected, not logged in
+
+
+def test_add_multiple_cards_at_once(app, client):
+    register(client)
+    deck_id = make_deck(app, client, cards=0)
+    # The empty entry boxes are submitted too and should be ignored.
+    resp = client.post(f"/decks/{deck_id}/cards", data={
+        "front": ["", "uno", "dos", "tres"],
+        "back": ["", "one", "two", "three"],
+    }, follow_redirects=True)
+    assert b"Added 3 cards" in resp.data
+    with app.app_context():
+        assert [c.front for c in db.session.get(Deck, deck_id).cards] == ["uno", "dos", "tres"]
+
+
+def test_add_multiple_cards_is_all_or_nothing(app, client):
+    register(client)
+    deck_id = make_deck(app, client, cards=0)
+    resp = client.post(f"/decks/{deck_id}/cards", data={
+        "front": ["uno", "dos"], "back": ["one", ""],
+    }, follow_redirects=True)
+    assert b"Card 2:" in resp.data
+    resp = client.post(f"/decks/{deck_id}/cards", data={"front": [""], "back": [""]}, follow_redirects=True)
+    assert b"at least one card" in resp.data
+    with app.app_context():
+        assert Card.query.count() == 0

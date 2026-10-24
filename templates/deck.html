@@ -19,18 +19,40 @@
 
 <section class="panel" id="add-card">
   <h2>Add a card</h2>
-  <form method="post" action="{{ url_for('add_card', deck_id=deck.id) }}" class="stack">
+  <form method="post" action="{{ url_for('add_card', deck_id=deck.id) }}" class="stack" id="add-cards-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="two-col">
       <label>Front
-        <textarea name="front" rows="3" maxlength="2000" required autofocus></textarea>
+        <textarea name="front" id="new-front" rows="3" maxlength="2000" autofocus></textarea>
       </label>
       <label>Back
-        <textarea name="back" rows="3" maxlength="2000" required></textarea>
+        <textarea name="back" id="new-back" rows="3" maxlength="2000"></textarea>
       </label>
     </div>
-    <button type="submit" class="btn btn-primary">Add card</button>
+    <div class="row">
+      <button type="button" class="btn" id="add-to-list">+ Add to list</button>
+      <span class="muted hint">Tip: press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd> to add to the list.</span>
+    </div>
+    <p class="field-error" id="add-card-error" role="alert" hidden></p>
+
+    <div id="pending-section" hidden>
+      <h3>Cards to add <span class="muted" id="pending-count"></span></h3>
+      <ol class="pending-list" id="pending-list"></ol>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="add-cards-submit">Add cards</button>
   </form>
+  <template id="pending-item-template">
+    <li class="pending-item">
+      <div class="card-sides">
+        <div><span class="label">Front</span><p class="pre" data-front></p></div>
+        <div><span class="label">Back</span><p class="pre" data-back></p></div>
+      </div>
+      <input type="hidden" name="front">
+      <input type="hidden" name="back">
+      <button type="button" class="btn btn-small btn-danger-outline" data-remove>Remove</button>
+    </li>
+  </template>
 </section>
 
 <section>
