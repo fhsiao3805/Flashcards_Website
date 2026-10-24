@@ -30,8 +30,8 @@ if (flashcard) {
     if (e.key === " " && e.target !== flashcard) {
       e.preventDefault();
       flashcard.classList.toggle("flipped");
-    } else if (e.key === "1" || e.key === "2") {
-      document.querySelector(`[data-key="${e.key}"]`)?.click();
+    } else if (["1", "2", "s", "S"].includes(e.key) && !e.metaKey && !e.ctrlKey) {
+      document.querySelector(`[data-key="${e.key.toLowerCase()}"]`)?.click();
     }
   });
 }

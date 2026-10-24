@@ -10,6 +10,7 @@ A Flask web app for making and studying flashcards. Each user has an account and
 - **Study mode:** one card at a time. Click the card (or press <kbd>Space</kbd>) to flip it, then mark it:
   - **✓ I know this** (<kbd>2</kbd>): the card is saved as *known* and is skipped every time you study this deck again.
   - **✗ Don't know yet** (<kbd>1</kbd>): the card moves to the back for this pass and shows up again in your next session.
+- **Shuffle:** on the study page, click **🔀 Shuffle cards** (or press <kbd>S</kbd>) to study the remaining cards in random order instead of the order you added them. While shuffle is on, **Reshuffle** picks a new random order and **Use added order** turns it off. Shuffle stays on for that deck, and each new study session gets a fresh random order.
 - **Reset marked cards:** a pop-up asks you to confirm. If you confirm, every known card in the deck is unmarked and shows up again the next time you study.
 - Users can only see and change their own decks. All forms are CSRF-protected.
 
