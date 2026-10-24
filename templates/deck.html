@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ deck.name }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('decks') }}">← All decks</a></p>
+
+<div class="deck-header">
+  <h1>{{ deck.name }}</h1>
+  <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
+    · {{ deck.known_count }} marked known
+    · {{ deck.cards|length - deck.known_count }} left to study</p>
+</div>
+
+<div class="row actions">
+  {% if deck.cards %}
+    <a class="btn btn-primary" href="{{ url_for('study', deck_id=deck.id, new=1) }}">Study this deck</a>
+  {% endif %}
+  {% include "_reset_dialog.html" %}
+</div>
+
+<section class="panel" id="add-card">
+  <h2>Add a card</h2>
+  <form method="post" action="{{ url_for('add_card', deck_id=deck.id) }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="two-col">
+      <label>Front
+        <textarea name="front" rows="3" maxlength="2000" required autofocus></textarea>
+      </label>
+      <label>Back
+        <textarea name="back" rows="3" maxlength="2000" required></textarea>
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary">Add card</button>
+  </form>
+</section>
+
+<section>
+  <h2>Cards</h2>
+  {% if deck.cards %}
+    <ul class="card-list">
+      {% for card in deck.cards %}
+        <li class="panel card-row">
+          <div class="card-sides">
+            <div><span class="label">Front</span><p class="pre">{{ card.front }}</p></div>
+            <div><span class="label">Back</span><p class="pre">{{ card.back }}</p></div>
+          </div>
+          <div class="card-meta">
+            {% if card.known %}<span class="badge badge-known">Known</span>{% endif %}
+            <a class="btn btn-small" href="{{ url_for('edit_card', card_id=card.id) }}">Edit</a>
+            <form method="post" action="{{ url_for('delete_card', card_id=card.id) }}" class="inline"
+                  data-confirm="Delete this card?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-small btn-danger-outline">Delete</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">No cards yet. Add your first card above.</p>
+  {% endif %}
+</section>
+
+<details class="panel danger-zone">
+  <summary>Deck settings</summary>
+  <form method="post" action="{{ url_for('rename_deck', deck_id=deck.id) }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="name" value="{{ deck.name }}" maxlength="100" required>
+    <button type="submit" class="btn">Rename</button>
+  </form>
+  <form method="post" action="{{ url_for('delete_deck', deck_id=deck.id) }}"
+        data-confirm="Delete “{{ deck.name }}” and all its cards? This cannot be undone.">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-danger">Delete deck</button>
+  </form>
+</details>
+{% endblock %}

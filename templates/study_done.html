@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Done · {{ deck.name }}{% endblock %}
+{% block content %}
+<section class="panel done center">
+  {% if not deck.cards %}
+    <h1>This deck is empty</h1>
+    <p>Add some cards before studying.</p>
+    <a class="btn btn-primary" href="{{ url_for('deck_detail', deck_id=deck.id) }}">Add cards</a>
+  {% elif not_known == 0 %}
+    <h1>🎉 You know every card!</h1>
+    <p>All {{ deck.cards|length }} cards in “{{ deck.name }}” are marked as known.
+      Reset them to study the whole deck again.</p>
+    <div class="row center-row">
+      {% include "_reset_dialog.html" %}
+      <a class="btn" href="{{ url_for('deck_detail', deck_id=deck.id) }}">Back to deck</a>
+    </div>
+  {% else %}
+    <h1>Pass complete</h1>
+    <p>{{ deck.known_count }} of {{ deck.cards|length }} cards known.
+      {{ not_known }} card{{ '' if not_known == 1 else 's' }} still to learn.</p>
+    <div class="row center-row">
+      <a class="btn btn-primary" href="{{ url_for('study', deck_id=deck.id, new=1) }}">Study remaining cards</a>
+      {% include "_reset_dialog.html" %}
+      <a class="btn" href="{{ url_for('deck_detail', deck_id=deck.id) }}">Back to deck</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

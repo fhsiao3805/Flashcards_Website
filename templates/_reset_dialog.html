@@ -1,0 +1,13 @@
+<button type="button" class="btn" data-open-dialog="reset-dialog"{% if deck.known_count == 0 %} disabled title="No cards are marked as known yet"{% endif %}>Reset marked cards</button>
+<dialog id="reset-dialog" class="modal" aria-labelledby="reset-title">
+  <form method="post" action="{{ url_for('reset_deck', deck_id=deck.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 id="reset-title">Reset marked cards?</h2>
+    <p>All {{ deck.known_count }} card{{ '' if deck.known_count == 1 else 's' }} marked as known in
+      “{{ deck.name }}” will show up again the next time you study this deck.</p>
+    <div class="row end">
+      <button type="button" class="btn" data-close-dialog>Cancel</button>
+      <button type="submit" class="btn btn-danger">Yes, reset</button>
+    </div>
+  </form>
+</dialog>

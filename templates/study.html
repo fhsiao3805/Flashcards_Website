@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Study {{ deck.name }}{% endblock %}
+{% block content %}
+<div class="study-header">
+  <a href="{{ url_for('deck_detail', deck_id=deck.id) }}">← {{ deck.name }}</a>
+  <span class="muted">{{ remaining }} card{{ '' if remaining == 1 else 's' }} left</span>
+</div>
+
+<button type="button" class="flashcard" id="flashcard" aria-live="polite"
+        aria-label="Flashcard. Click or press space to flip.">
+  <span class="flashcard-inner">
+    <span class="face face-front">
+      <span class="label">Front</span>
+      <span class="pre">{{ card.front }}</span>
+    </span>
+    <span class="face face-back">
+      <span class="label">Back</span>
+      <span class="pre">{{ card.back }}</span>
+    </span>
+  </span>
+</button>
+<p class="center muted hint">Click the card or press <kbd>Space</kbd> to flip.</p>
+
+<form method="post" action="{{ url_for('mark_card', deck_id=deck.id, card_id=card.id) }}" class="mark-buttons">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="result" value="unknown" class="btn btn-big btn-warn" data-key="1">
+    ✗ Don’t know yet <kbd>1</kbd>
+  </button>
+  <button type="submit" name="result" value="known" class="btn btn-big btn-success" data-key="2">
+    ✓ I know this <kbd>2</kbd>
+  </button>
+</form>
+{% endblock %}

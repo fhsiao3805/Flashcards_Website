@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}My decks{% endblock %}
+{% block content %}
+<h1>My decks</h1>
+
+<form method="post" class="panel row">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input name="name" placeholder="New deck name, e.g. Spanish verbs" maxlength="100" required>
+  <button type="submit" class="btn btn-primary">Create deck</button>
+</form>
+
+{% if decks %}
+  <ul class="deck-grid">
+    {% for deck in decks %}
+      <li class="panel deck-tile">
+        <a href="{{ url_for('deck_detail', deck_id=deck.id) }}" class="deck-name">{{ deck.name }}</a>
+        <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
+          · {{ deck.known_count }} known</p>
+        <div class="row">
+          <a class="btn btn-small" href="{{ url_for('deck_detail', deck_id=deck.id) }}">Manage</a>
+          {% if deck.cards %}
+            <a class="btn btn-small btn-primary" href="{{ url_for('study', deck_id=deck.id, new=1) }}">Study</a>
+          {% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="empty">You don’t have any decks yet. Create one above to get started.</p>
+{% endif %}
+{% endblock %}
