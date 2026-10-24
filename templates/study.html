@@ -6,6 +6,17 @@
   <span class="muted">{{ remaining }} card{{ '' if remaining == 1 else 's' }} left</span>
 </div>
 
+<form method="post" action="{{ url_for('shuffle_deck', deck_id=deck.id) }}" class="row shuffle-bar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if shuffled %}
+    <span class="badge badge-shuffle">🔀 Shuffled</span>
+    <button type="submit" name="mode" value="on" class="btn btn-small" data-key="s">Reshuffle <kbd>S</kbd></button>
+    <button type="submit" name="mode" value="off" class="btn btn-small">Use added order</button>
+  {% else %}
+    <button type="submit" name="mode" value="on" class="btn btn-small" data-key="s">🔀 Shuffle cards <kbd>S</kbd></button>
+  {% endif %}
+</form>
+
 <button type="button" class="flashcard" id="flashcard" aria-live="polite"
         aria-label="Flashcard. Click or press space to flip.">
   <span class="flashcard-inner">

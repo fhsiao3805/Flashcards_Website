@@ -1,6 +1,8 @@
+import hashlib
 import logging
 import os
 import re
+import secrets
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
@@ -106,6 +108,28 @@ def set_skipped(deck_id, card_ids):
     session["study"] = study
 
 
+# Shuffle mode is stored per deck as a random seed (absent = cards in added order).
+# Ordering by a hash of seed + card id keeps the order stable for the whole pass,
+# even if cards are added mid-pass, without storing every card id in the cookie.
+def get_shuffle_seed(deck_id):
+    return session.get("shuffle", {}).get(str(deck_id))
+
+
+def set_shuffle_seed(deck_id, seed):
+    shuffle = dict(session.get("shuffle", {}))
+    if seed is None:
+        shuffle.pop(str(deck_id), None)
+    else:
+        shuffle[str(deck_id)] = seed
+    session["shuffle"] = shuffle
+
+
+def study_order(cards, seed):
+    if seed is None:
+        return list(cards)
+    return sorted(cards, key=lambda c: hashlib.sha256(f"{seed}:{c.id}".encode()).digest())
+
+
 def register_routes(app):
     @app.route("/", methods=["GET", "POST"])
     def login():
@@ -163,6 +187,7 @@ def register_routes(app):
     def logout():
         logout_user()
         session.pop("study", None)
+        session.pop("shuffle", None)
         flash("You have been logged out.", "success")
         return redirect(url_for("login"))
 
@@ -278,10 +303,13 @@ def register_routes(app):
         deck = get_owned_deck(deck_id)
         if request.args.get("new"):
             set_skipped(deck.id, [])
+            if get_shuffle_seed(deck.id):
+                set_shuffle_seed(deck.id, secrets.token_hex(8))
             return redirect(url_for("study", deck_id=deck.id))
 
         skipped = set(get_skipped(deck.id))
-        remaining = [c for c in deck.cards if not c.known and c.id not in skipped]
+        seed = get_shuffle_seed(deck.id)
+        remaining = [c for c in study_order(deck.cards, seed) if not c.known and c.id not in skipped]
         if not remaining:
             return render_template(
                 "study_done.html",
@@ -294,7 +322,22 @@ def register_routes(app):
             deck=deck,
             card=remaining[0],
             remaining=len(remaining),
+            shuffled=seed is not None,
         )
+
+    @app.post("/decks/<int:deck_id>/study/shuffle")
+    @login_required
+    def shuffle_deck(deck_id):
+        deck = get_owned_deck(deck_id)
+        # "on" turns shuffle on or reshuffles the remaining cards; "off" restores added order.
+        mode = request.form.get("mode")
+        if mode == "on":
+            set_shuffle_seed(deck.id, secrets.token_hex(8))
+        elif mode == "off":
+            set_shuffle_seed(deck.id, None)
+        else:
+            abort(400)
+        return redirect(url_for("study", deck_id=deck.id))
 
     @app.post("/decks/<int:deck_id>/study/<int:card_id>")
     @login_required

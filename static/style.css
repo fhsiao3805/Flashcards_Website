@@ -250,3 +250,7 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 .pending-item .card-sides { flex: 1; }
 @media (max-width: 600px) { .pending-item { flex-wrap: wrap; } }
 .field-error { color: var(--danger); margin: 0; font-size: 0.9rem; }
+
+/* Shuffle controls on the study page */
+.shuffle-bar { justify-content: flex-end; margin-bottom: 0.75rem; }
+.badge-shuffle { background: rgba(79, 70, 229, 0.15); color: var(--primary); }

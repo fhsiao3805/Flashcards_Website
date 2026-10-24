@@ -170,3 +170,49 @@ def test_add_multiple_cards_is_all_or_nothing(app, client):
     assert b"at least one card" in resp.data
     with app.app_context():
         assert Card.query.count() == 0
+
+
+def study_sequence(client, deck_id):
+    """Walk a full pass marking every card 'not known'; return the card ids seen."""
+    seen = []
+    while True:
+        card_id, _ = current_front(client, deck_id)
+        if card_id is None:
+            return seen
+        seen.append(card_id)
+        client.post(f"/decks/{deck_id}/study/{card_id}", data={"result": "unknown"})
+
+
+def test_shuffle_changes_order_and_can_be_turned_off(app, client):
+    register(client)
+    deck_id = make_deck(app, client, cards=20)
+    with app.app_context():
+        added_order = [c.id for c in db.session.get(Deck, deck_id).cards]
+
+    client.get(f"/decks/{deck_id}/study?new=1")
+    assert study_sequence(client, deck_id) == added_order
+
+    client.get(f"/decks/{deck_id}/study?new=1")
+    resp = client.post(f"/decks/{deck_id}/study/shuffle", data={"mode": "on"}, follow_redirects=True)
+    assert b"Shuffled" in resp.data
+    shuffled = study_sequence(client, deck_id)
+    assert sorted(shuffled) == sorted(added_order)  # every card exactly once
+    assert shuffled != added_order  # 1 in 20! chance of a false failure
+
+    # Shuffle stays on for the next pass, with a fresh order.
+    client.get(f"/decks/{deck_id}/study?new=1")
+    assert study_sequence(client, deck_id) != shuffled
+
+    client.get(f"/decks/{deck_id}/study?new=1")
+    client.post(f"/decks/{deck_id}/study/shuffle", data={"mode": "off"})
+    assert study_sequence(client, deck_id) == added_order
+
+
+def test_shuffled_order_is_stable_within_a_pass(app, client):
+    register(client)
+    deck_id = make_deck(app, client, cards=10)
+    client.post(f"/decks/{deck_id}/study/shuffle", data={"mode": "on"})
+    first, _ = current_front(client, deck_id)
+    again, _ = current_front(client, deck_id)  # reloading doesn't reshuffle
+    assert first == again
+    assert client.post(f"/decks/{deck_id}/study/shuffle", data={"mode": "bogus"}).status_code == 400
