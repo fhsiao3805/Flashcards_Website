@@ -12,9 +12,14 @@ A Flask web app for making and studying flashcards. Each user has an account and
 - **Study mode:** one card at a time. Click the card (or press <kbd>Space</kbd>) to flip it, then mark it:
   - **✓ I know this** (<kbd>2</kbd>): the card is saved as *known* and is skipped every time you study this deck again.
   - **✗ Don't know yet** (<kbd>1</kbd>): the card moves to the back for this pass and shows up again in your next session.
+- **How known cards work:**
+  - Each card has a `known` flag in the database. Studying a deck shows only cards where `known` is false.
+  - Marking a card **known** sets the flag, so the card stays hidden in future sessions, even after you log out.
+  - Marking a card **not known** leaves the flag alone. The app records it in your session for the current pass only, so you can work through the rest of the deck.
+  - **Reset marked cards** sets `known = false` for every card in the deck.
 - **Shuffle:** on the study page, click **🔀 Shuffle cards** (or press <kbd>S</kbd>) to study the remaining cards in random order instead of the order you added them. While shuffle is on, **Reshuffle** picks a new random order and **Use added order** turns it off. Shuffle stays on for that deck, and each new study session gets a fresh random order.
 - **Reset marked cards:** a pop-up asks you to confirm. If you confirm, every known card in the deck is unmarked and shows up again the next time you study.
-- Users can only change their own decks. Other users can view and copy shared decks, but can't edit them. All forms are CSRF-protected.
+- Users can only change their own decks. Other users can view and copy shared decks, but can't edit them.
 
 ## Tech stack
 
@@ -41,19 +46,55 @@ render.yaml         One-click Render blueprint (web service + Postgres)
 
 ## Running locally
 
-Requires Python 3.10 or newer (developed on 3.12).
+Requires Python 3.10 or newer (developed on 3.12). Check your version with `python3 --version` on macOS or `py --version` on Windows. If Python isn't installed, download it from [python.org](https://www.python.org/downloads/). On Windows, check **Add python.exe to PATH** during setup.
+
+All commands below are run from the project folder (the one containing `app.py`).
+
+### macOS
+
+Open **Terminal** and run:
 
 ```bash
+# 1. Create and activate a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
+
+# 2. Install dependencies
 pip install -r requirements-dev.txt
 
+# 3. Start the app
 flask --app app run --debug
 ```
 
-Open http://127.0.0.1:5000, create an account, and start making decks. With no `DATABASE_URL` set, the app creates a SQLite file at `instance/flashcards.db`. Tables are created automatically on startup. If a database was created by an older version of the app, any new optional columns (such as the deck description fields) are added automatically on startup. Your data is kept.
+### Windows
+
+Open **PowerShell** and run:
+
+```powershell
+# 1. Create and activate a virtual environment
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# 2. Install dependencies
+pip install -r requirements-dev.txt
+
+# 3. Start the app
+flask --app app run --debug
+```
+
+If PowerShell says running scripts is disabled, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then try activating again. If you use **Command Prompt** instead of PowerShell, activate with `.venv\Scripts\activate.bat`.
+
+### Using the app
+
+Open http://127.0.0.1:5000, create an account, and start making decks. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal to stop the server.
+
+With no `DATABASE_URL` set, the app creates a SQLite file at `instance/flashcards.db`. Tables are created automatically on startup. If a database was created by an older version of the app, any new optional columns (such as the deck description fields) are added automatically on startup. Your data is kept.
+
+Next time, you only need to activate the virtual environment (step 1's second line) and start the app (step 3).
 
 ### Running the tests
+
+With the virtual environment activated, on either system:
 
 ```bash
 pytest
@@ -61,43 +102,16 @@ pytest
 
 ## Configuration
 
-All settings come from environment variables:
+No configuration is needed to run locally. These optional environment variables change the app's settings:
 
-| Variable                | Required in production | Description |
-|-------------------------|------------------------|-------------|
-| `SECRET_KEY`            | **Yes**                | Long random string used to sign session cookies. Generate one with `python -c "import secrets; print(secrets.token_hex(32))"`. |
-| `DATABASE_URL`          | **Yes**                | Database connection URL, e.g. `postgresql://user:pass@host:5432/db`. `postgres://` URLs are accepted too. Defaults to local SQLite. |
-| `SESSION_COOKIE_SECURE` | Recommended            | Set to `1` when serving over HTTPS so cookies are sent only over HTTPS. |
+| Variable                | Description |
+|-------------------------|-------------|
+| `SECRET_KEY`            | Long random string used to sign session cookies. If unset, the app uses an insecure development key and logs a warning. Generate one with `python -c "import secrets; print(secrets.token_hex(32))"`. |
+| `DATABASE_URL`          | Database connection URL, e.g. `postgresql://user:pass@host:5432/db`. `postgres://` URLs are accepted too. Defaults to local SQLite. |
+| `SESSION_COOKIE_SECURE` | Set to `1` when serving over HTTPS so cookies are sent only over HTTPS. |
 
-## Deploying (so people can use it from anywhere)
+To set a variable before starting the app:
 
-SQLite works for local development, but deploy with PostgreSQL. Many hosts wipe the disk on every deploy, which would delete a SQLite file.
-
-### Option A: Render (blueprint included)
-
-1. Push this repo to GitHub.
-2. In the [Render dashboard](https://dashboard.render.com), choose **New → Blueprint** and select the repo.
-3. Render reads `render.yaml` and creates:
-   - a PostgreSQL database (`flashcards-db`)
-   - a web service that runs `gunicorn "app:create_app()"`, with `DATABASE_URL` wired to the database, a generated `SECRET_KEY`, and secure cookies turned on.
-4. When the deploy finishes, open the `https://<name>.onrender.com` URL and share it.
-
-> Render's free tier puts the web service to sleep when it's idle, and free Postgres databases expire after a limited time. Use a paid plan for anything long-lived.
-
-### Option B: Any host that runs a Procfile (Railway, Heroku, Fly.io, etc.)
-
-1. Create a PostgreSQL database on the host and set `DATABASE_URL` to its URL.
-2. Set `SECRET_KEY` and `SESSION_COOKIE_SECURE=1`.
-3. Deploy. The start command is in `Procfile`:
-   ```
-   web: gunicorn "app:create_app()"
-   ```
-
-The app is wrapped in `ProxyFix`, so it handles HTTPS correctly behind the load balancers these hosts use.
-
-## How "known" cards work
-
-- Each card has a `known` flag in the database. Studying a deck shows only cards where `known` is false.
-- Marking a card **known** sets the flag, so the card stays hidden in future sessions, even after you log out.
-- Marking a card **not known** leaves the flag alone. The app records it in your session for the current pass only, so you can work through the rest of the deck.
-- **Reset marked cards** sets `known = false` for every card in the deck. The app asks you to confirm first.
+- **macOS:** `export SECRET_KEY=your-key-here`
+- **Windows (PowerShell):** `$env:SECRET_KEY = "your-key-here"`
+- **Windows (Command Prompt):** `set SECRET_KEY=your-key-here`
