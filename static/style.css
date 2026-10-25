@@ -1,9 +1,10 @@
 :root {
-  --bg: #f5f6fa;
+  --bg: #efe9fb;
+  --field: #faf8ff;
   --surface: #ffffff;
   --text: #1f2330;
-  --muted: #6b7280;
-  --border: #e3e5ec;
+  --muted: #6b6880;
+  --border: #e2daf3;
   --primary: #4f46e5;
   --primary-hover: #4338ca;
   --success: #16a34a;
@@ -15,11 +16,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161d;
-    --surface: #1e212b;
-    --text: #e8eaf0;
-    --muted: #9aa1b1;
-    --border: #2e3240;
+    --bg: #1a1626;
+    --field: #15121f;
+    --surface: #241f33;
+    --text: #ece8f5;
+    --muted: #a39cb8;
+    --border: #3a3350;
     --primary: #818cf8;
     --primary-hover: #a5b4fc;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -49,6 +51,7 @@ h2 { font-size: 1.2rem; margin: 0 0 0.75em; }
   padding: 0.75rem 1rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 8px rgba(91, 33, 182, 0.06);
 }
 .topbar nav { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .brand { font-weight: 700; font-size: 1.1rem; color: var(--text); }
@@ -83,7 +86,7 @@ input:not([type="checkbox"]):not([type="radio"]), textarea {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--field);
   color: var(--text);
   width: 100%;
 }
@@ -121,9 +124,11 @@ textarea { resize: vertical; }
 .link-button { background: none; border: none; color: var(--primary); font: inherit; cursor: pointer; padding: 0; }
 
 .flash { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid; }
-.flash-success { background: rgba(22, 163, 74, 0.1); border-color: rgba(22, 163, 74, 0.35); }
-.flash-error { background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.35); }
-.flash-message { background: rgba(79, 70, 229, 0.1); border-color: rgba(79, 70, 229, 0.35); }
+/* Tints sit on a solid surface so they don't mix with the purple page background. */
+.flash { background-color: var(--surface); }
+.flash-success { background-image: linear-gradient(rgba(22, 163, 74, 0.1), rgba(22, 163, 74, 0.1)); border-color: rgba(22, 163, 74, 0.35); }
+.flash-error { background-image: linear-gradient(rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.1)); border-color: rgba(220, 38, 38, 0.35); }
+.flash-message { background-image: linear-gradient(rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.1)); border-color: rgba(79, 70, 229, 0.35); }
 
 .auth { max-width: 400px; margin: 2rem auto; }
 .auth h1 { text-align: center; margin-bottom: 0.2em; }
@@ -243,7 +248,7 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
   padding: 0.75rem;
   border: 1px dashed var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--field);
   counter-increment: pending;
 }
 .pending-item::before { content: counter(pending) "."; font-weight: 700; color: var(--muted); }
@@ -270,7 +275,7 @@ select {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--field);
   color: var(--text);
 }
 .deck-snippet { margin: 0.4rem 0 0; font-size: 0.9rem; overflow-wrap: anywhere; }
@@ -293,7 +298,7 @@ select {
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--field);
   cursor: pointer;
   font-weight: 400;
 }
