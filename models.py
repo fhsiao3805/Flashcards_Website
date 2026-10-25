@@ -2,11 +2,14 @@ from datetime import datetime, timezone
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect, text, true
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import DBAPIError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 db = SQLAlchemy()
+
+VISIBILITY_PRIVATE = "private"
+VISIBILITY_PUBLIC = "public"
 
 
 def utcnow():
@@ -44,8 +47,13 @@ class Deck(db.Model):
     professor = db.Column(db.String(100))
     course = db.Column(db.String(150))
     description = db.Column(db.Text)
-    # Public decks can be found by other users on the Find Other Decks page.
-    is_public = db.Column(db.Boolean, default=True, server_default=true(), nullable=False)
+    # "public" decks can be found by other users on the Find Other Decks page.
+    # Decks are private unless the owner makes them public. (This replaced an
+    # earlier is_public column that defaulted to shared; databases that still have
+    # it just ignore it, so every existing deck starts out private.)
+    visibility = db.Column(
+        db.String(10), default=VISIBILITY_PRIVATE, server_default=VISIBILITY_PRIVATE, nullable=False
+    )
     user_id = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -58,6 +66,10 @@ class Deck(db.Model):
         cascade="all, delete-orphan",
         order_by="Card.id",
     )
+
+    @property
+    def is_public(self):
+        return self.visibility == VISIBILITY_PUBLIC
 
     @property
     def known_count(self):
@@ -98,7 +110,9 @@ def add_missing_columns():
             ddl += column.type.compile(dialect=db.engine.dialect)
             if column.server_default is not None:
                 default = column.server_default.arg
-                if not isinstance(default, str):
+                if isinstance(default, str):
+                    default = "'" + default.replace("'", "''") + "'"
+                else:
                     default = default.compile(dialect=db.engine.dialect)
                 ddl += f" DEFAULT {default}"
             if not column.nullable:

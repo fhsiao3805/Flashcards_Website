@@ -7,7 +7,8 @@
   <h1>{{ deck.name }}</h1>
   <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
     · {{ deck.known_count }} marked known
-    · {{ deck.cards|length - deck.known_count }} left to study</p>
+    · {{ deck.cards|length - deck.known_count }} left to study
+    · {% include "_visibility_badge.html" %}</p>
   {% if deck.course or deck.professor or deck.description %}
     <div class="deck-info">
       {% if deck.course %}<p><span class="label">Course</span>{{ deck.course }}</p>{% endif %}
@@ -111,10 +112,21 @@
     <label>Course description
       <textarea name="description" rows="3" maxlength="500" placeholder="A short description of the course">{{ deck.description or '' }}</textarea>
     </label>
-    <label class="checkbox">
-      <input type="checkbox" name="is_public" value="1" {% if deck.is_public %}checked{% endif %}>
-      Show this deck in Find Other Decks so other users can view and copy it
-    </label>
+    <fieldset class="visibility">
+      <legend>Visibility</legend>
+      <div class="visibility-options">
+        <label class="visibility-option">
+          <input type="radio" name="visibility" value="private" {% if not deck.is_public %}checked{% endif %}>
+          <span class="option-title">🔒 Private</span>
+          <span class="option-desc">Only you can see this deck.</span>
+        </label>
+        <label class="visibility-option">
+          <input type="radio" name="visibility" value="public" {% if deck.is_public %}checked{% endif %}>
+          <span class="option-title">🌐 Public</span>
+          <span class="option-desc">Other users can find, view, and copy it in Find Other Decks.</span>
+        </label>
+      </div>
+    </fieldset>
     <div><button type="submit" class="btn">Save description</button></div>
   </form>
   <form method="post" action="{{ url_for('delete_deck', deck_id=deck.id) }}"

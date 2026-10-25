@@ -9,7 +9,7 @@ from flask_login import LoginManager, current_user, login_required, login_user, 
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from models import Card, Deck, User, add_missing_columns, db
+from models import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC, Card, Deck, User, add_missing_columns, db
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 MIN_PASSWORD_LENGTH = 8
@@ -268,7 +268,8 @@ def register_routes(app):
             deck.professor = professor or None
             deck.course = course or None
             deck.description = description or None
-            deck.is_public = bool(request.form.get("is_public"))
+            is_public = request.form.get("visibility") == VISIBILITY_PUBLIC
+            deck.visibility = VISIBILITY_PUBLIC if is_public else VISIBILITY_PRIVATE
             db.session.commit()
             flash("Deck description saved.", "success")
         return redirect(url_for("deck_detail", deck_id=deck.id))
@@ -286,7 +287,7 @@ def register_routes(app):
         stmt = (
             db.select(Deck)
             .join(Deck.owner)
-            .where(Deck.is_public, Deck.user_id != current_user.id, has_cards)
+            .where(Deck.visibility == VISIBILITY_PUBLIC, Deck.user_id != current_user.id, has_cards)
             .order_by(Deck.created_at.desc(), Deck.id.desc())
         )
         if query:

@@ -255,13 +255,14 @@ def test_existing_database_gets_new_deck_columns(tmp_path):
 
 
 def add_deck(client, name, course="", professor="", cards=1, public=True):
+    """Create a deck through the UI; public=True makes it public via Deck settings."""
     client.post("/decks", data={"name": name})
     deck_id = int(client.get("/decks").get_data(as_text=True).split("/decks/")[1].split('"')[0])
     for i in range(cards):
         client.post(f"/decks/{deck_id}/cards", data={"front": f"q{i}", "back": f"a{i}"})
     data = {"course": course, "professor": professor, "description": ""}
     if public:
-        data["is_public"] = "1"
+        data["visibility"] = "public"
     client.post(f"/decks/{deck_id}/details", data=data)
     return deck_id
 
@@ -319,17 +320,47 @@ def test_view_and_copy_shared_deck(app, client):
         assert len(db.session.get(Deck, public_id).cards) == 2  # original untouched
 
 
-def test_existing_database_gets_is_public_column(tmp_path):
+def test_decks_are_private_by_default(app, client):
+    register(client, "bob")
+    deck_id = add_deck(client, "Cell Biology", public=False)
+    assert b"Private" in client.get(f"/decks/{deck_id}").data
+    with app.app_context():
+        assert db.session.get(Deck, deck_id).visibility == "private"
+    client.post("/logout")
+
+    register(client, "carol")
+    assert deck_names(client.get("/find")) == []
+    assert client.get(f"/find/{deck_id}").status_code == 404
+    client.post("/logout")
+
+    # Owner makes it public, then private again.
+    client.post("/", data={"username": "bob", "password": "password123"})
+    client.post(f"/decks/{deck_id}/details", data={"visibility": "public"})
+    assert b"Public" in client.get(f"/decks/{deck_id}").data
+    client.post("/logout")
+    client.post("/", data={"username": "carol", "password": "password123"})
+    assert deck_names(client.get("/find")) == ["Cell Biology"]
+    client.post("/logout")
+
+    client.post("/", data={"username": "bob", "password": "password123"})
+    client.post(f"/decks/{deck_id}/details", data={})  # no visibility sent -> private
+    with app.app_context():
+        assert db.session.get(Deck, deck_id).visibility == "private"
+
+
+def test_existing_decks_become_private_on_upgrade(tmp_path):
     import sqlite3
     path = tmp_path / "old.db"
     conn = sqlite3.connect(path)
+    # A database from the version where decks were shared by default.
     conn.execute("CREATE TABLE decks (id INTEGER PRIMARY KEY, name VARCHAR(100) NOT NULL, "
-                 "user_id INTEGER NOT NULL, created_at DATETIME NOT NULL)")
-    conn.execute("INSERT INTO decks VALUES (1, 'old', 1, '2026-01-01')")
+                 "user_id INTEGER NOT NULL, created_at DATETIME NOT NULL, "
+                 "is_public BOOLEAN DEFAULT 1 NOT NULL)")
+    conn.execute("INSERT INTO decks (id, name, user_id, created_at) VALUES (1, 'old', 1, '2026-01-01')")
     conn.commit()
     conn.close()
 
     create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{path}"})
     conn = sqlite3.connect(path)
-    assert conn.execute("SELECT is_public FROM decks").fetchone() == (1,)
+    assert conn.execute("SELECT visibility FROM decks").fetchone() == ("private",)
     conn.close()
