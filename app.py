@@ -9,7 +9,7 @@ from flask_login import LoginManager, current_user, login_required, login_user, 
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from models import Card, Deck, User, add_missing_columns, db
+from models import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC, Card, Deck, User, add_missing_columns, db
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 MIN_PASSWORD_LENGTH = 8
@@ -19,6 +19,9 @@ MAX_COURSE = 150
 MAX_DESCRIPTION = 500
 MAX_CARD_TEXT = 2000
 MAX_CARDS_PER_SUBMIT = 200
+MAX_SEARCH_LENGTH = 100
+SEARCH_RESULTS_PER_PAGE = 20
+SEARCH_FIELDS = {"all", "name", "course", "professor"}
 
 csrf = CSRFProtect()
 login_manager = LoginManager()
@@ -86,6 +89,19 @@ def get_owned_card(card_id):
     if card is None or card.deck.user_id != current_user.id:
         abort(404)
     return card
+
+
+def get_viewable_deck(deck_id):
+    deck = db.session.get(Deck, deck_id)
+    if deck is None or not (deck.is_public or deck.user_id == current_user.id):
+        abort(404)
+    return deck
+
+
+def like_pattern(term):
+    # Escape LIKE wildcards so a search for "100%" matches literally.
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 def is_safe_next(target):
@@ -252,9 +268,72 @@ def register_routes(app):
             deck.professor = professor or None
             deck.course = course or None
             deck.description = description or None
+            is_public = request.form.get("visibility") == VISIBILITY_PUBLIC
+            deck.visibility = VISIBILITY_PUBLIC if is_public else VISIBILITY_PRIVATE
             db.session.commit()
             flash("Deck description saved.", "success")
         return redirect(url_for("deck_detail", deck_id=deck.id))
+
+    @app.get("/find")
+    @login_required
+    def find_decks():
+        query = request.args.get("q", "").strip()[:MAX_SEARCH_LENGTH]
+        field = request.args.get("field", "all")
+        if field not in SEARCH_FIELDS:
+            field = "all"
+        page = request.args.get("page", 1, type=int)
+
+        has_cards = db.select(Card.id).where(Card.deck_id == Deck.id).exists()
+        stmt = (
+            db.select(Deck)
+            .join(Deck.owner)
+            .where(Deck.visibility == VISIBILITY_PUBLIC, Deck.user_id != current_user.id, has_cards)
+            .order_by(Deck.created_at.desc(), Deck.id.desc())
+        )
+        if query:
+            pattern = like_pattern(query)
+            columns = {"name": Deck.name, "course": Deck.course, "professor": Deck.professor}
+            searched = columns.values() if field == "all" else [columns[field]]
+            stmt = stmt.where(db.or_(*(col.ilike(pattern, escape="\\") for col in searched)))
+
+        results = db.paginate(stmt, page=page, per_page=SEARCH_RESULTS_PER_PAGE, error_out=False)
+        deck_ids = [deck.id for deck in results.items]
+        card_counts = dict(
+            db.session.execute(
+                db.select(Card.deck_id, db.func.count(Card.id))
+                .where(Card.deck_id.in_(deck_ids))
+                .group_by(Card.deck_id)
+            ).all()
+        ) if deck_ids else {}
+
+        return render_template(
+            "find.html", results=results, card_counts=card_counts, query=query, field=field
+        )
+
+    @app.get("/find/<int:deck_id>")
+    @login_required
+    def view_shared_deck(deck_id):
+        deck = get_viewable_deck(deck_id)
+        if deck.user_id == current_user.id:
+            return redirect(url_for("deck_detail", deck_id=deck.id))
+        return render_template("shared_deck.html", deck=deck)
+
+    @app.post("/find/<int:deck_id>/copy")
+    @login_required
+    def copy_deck(deck_id):
+        source = get_viewable_deck(deck_id)
+        copy = Deck(
+            name=source.name,
+            professor=source.professor,
+            course=source.course,
+            description=source.description,
+            cards=[Card(front=c.front, back=c.back) for c in source.cards],
+        )
+        db.session.add(copy)
+        copy.owner = current_user
+        db.session.commit()
+        flash(f"Copied “{source.name}” to your decks.", "success")
+        return redirect(url_for("deck_detail", deck_id=copy.id))
 
     @app.post("/decks/<int:deck_id>/delete")
     @login_required

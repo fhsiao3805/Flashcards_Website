@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Find Other Decks{% endblock %}
+{% block content %}
+<h1>Find Other Decks</h1>
+<p class="muted">Search decks other users have shared by deck name, course, or professor.</p>
+
+<form method="get" class="panel row search-form" role="search">
+  <input type="search" name="q" value="{{ query }}" maxlength="100"
+         placeholder="e.g. Biology, CSEN 174, Prof. Smith" aria-label="Search" autofocus>
+  <select name="field" aria-label="Search in">
+    <option value="all" {% if field == 'all' %}selected{% endif %}>All fields</option>
+    <option value="name" {% if field == 'name' %}selected{% endif %}>Deck name</option>
+    <option value="course" {% if field == 'course' %}selected{% endif %}>Course name</option>
+    <option value="professor" {% if field == 'professor' %}selected{% endif %}>Professor</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+{% if query %}
+  <p class="muted">{{ results.total }} deck{{ '' if results.total == 1 else 's' }} matching “{{ query }}”
+    {% if query %}· <a href="{{ url_for('find_decks') }}">Clear search</a>{% endif %}</p>
+{% elif results.total %}
+  <p class="muted">Recently shared decks</p>
+{% endif %}
+
+{% if results.items %}
+  <ul class="deck-grid">
+    {% for deck in results.items %}
+      <li class="panel deck-tile">
+        <a href="{{ url_for('view_shared_deck', deck_id=deck.id, q=query or None, field=field if query else None, page=results.page if results.page > 1 else None) }}" class="deck-name">{{ deck.name }}</a>
+        {% if deck.course or deck.professor %}
+          <p class="deck-course">{{ deck.course or '' }}{% if deck.course and deck.professor %} · {% endif %}{{ deck.professor or '' }}</p>
+        {% endif %}
+        {% if deck.description %}<p class="deck-snippet muted">{{ deck.description|truncate(120) }}</p>{% endif %}
+        {% set n = card_counts.get(deck.id, 0) %}
+        <p class="muted">{{ n }} card{{ '' if n == 1 else 's' }} · by {{ deck.owner.username }}</p>
+        <div class="row">
+          <a class="btn btn-small btn-primary" href="{{ url_for('view_shared_deck', deck_id=deck.id, q=query or None, field=field if query else None, page=results.page if results.page > 1 else None) }}">View deck</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if results.pages > 1 %}
+    <nav class="row center-row pagination" aria-label="Pages">
+      {% if results.has_prev %}
+        <a class="btn btn-small" href="{{ url_for('find_decks', q=query, field=field, page=results.prev_num) }}">← Previous</a>
+      {% endif %}
+      <span class="muted">Page {{ results.page }} of {{ results.pages }}</span>
+      {% if results.has_next %}
+        <a class="btn btn-small" href="{{ url_for('find_decks', q=query, field=field, page=results.next_num) }}">Next →</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% elif query %}
+  <p class="empty">No shared decks match “{{ query }}”. Try a different word or search all fields.</p>
+{% else %}
+  <p class="empty">No other users have shared decks yet.</p>
+{% endif %}
+{% endblock %}

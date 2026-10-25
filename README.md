@@ -6,13 +6,15 @@ A Flask web app for making and studying flashcards. Each user has an account and
 
 - **The login page is the home page** (`/`). New users can sign up at `/register`. Passwords are stored as salted hashes.
 - **Decks:** create, rename, and delete decks of flashcards. Under **Deck settings**, you can add an optional **description**: the course name, the professor's name, and a short course description. These appear at the top of the deck page, and the course and professor also appear on the deck's tile in **My decks**.
+- **Find Other Decks** (`/find`, linked in the top bar): search decks other users have shared by **deck name**, **course name**, or **professor**, or across all three. Matching is case-insensitive and also matches part of a word. With no search terms, the page lists recently shared decks. Each result opens a read-only preview of the deck's cards with a **Copy to my decks** button, which makes your own copy to study and edit.
+- **Public or private decks:** every deck is **private** by default, so only you can see it. To share one, open **Deck settings → Description**, choose **🌐 Public** under **Visibility**, and click **Save description**. Public decks appear in Find Other Decks, where other users can view and copy them. Switch back to **🔒 Private** at any time to hide the deck again. Each deck shows a Public or Private badge on its page and on its tile in **My decks**. Decks with no cards never appear in search, even if they're public.
 - **Cards:** each card has a front and a back. To add cards, fill in the front and back and click **+ Add to list** (or press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>). Repeat for as many cards as you like. They appear as a numbered list that you can remove items from. Then click **Add cards** to save the whole list to the deck at once. Cards can also be edited or deleted later.
 - **Study mode:** one card at a time. Click the card (or press <kbd>Space</kbd>) to flip it, then mark it:
   - **✓ I know this** (<kbd>2</kbd>): the card is saved as *known* and is skipped every time you study this deck again.
   - **✗ Don't know yet** (<kbd>1</kbd>): the card moves to the back for this pass and shows up again in your next session.
 - **Shuffle:** on the study page, click **🔀 Shuffle cards** (or press <kbd>S</kbd>) to study the remaining cards in random order instead of the order you added them. While shuffle is on, **Reshuffle** picks a new random order and **Use added order** turns it off. Shuffle stays on for that deck, and each new study session gets a fresh random order.
 - **Reset marked cards:** a pop-up asks you to confirm. If you confirm, every known card in the deck is unmarked and shows up again the next time you study.
-- Users can only see and change their own decks. All forms are CSRF-protected.
+- Users can only change their own decks. Other users can view and copy shared decks, but can't edit them. All forms are CSRF-protected.
 
 ## Tech stack
 

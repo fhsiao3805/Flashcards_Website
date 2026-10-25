@@ -252,3 +252,115 @@ def test_existing_database_gets_new_deck_columns(tmp_path):
     columns = {row[1] for row in conn.execute("PRAGMA table_info(decks)")}
     conn.close()
     assert {"professor", "course", "description"} <= columns
+
+
+def add_deck(client, name, course="", professor="", cards=1, public=True):
+    """Create a deck through the UI; public=True makes it public via Deck settings."""
+    client.post("/decks", data={"name": name})
+    deck_id = int(client.get("/decks").get_data(as_text=True).split("/decks/")[1].split('"')[0])
+    for i in range(cards):
+        client.post(f"/decks/{deck_id}/cards", data={"front": f"q{i}", "back": f"a{i}"})
+    data = {"course": course, "professor": professor, "description": ""}
+    if public:
+        data["visibility"] = "public"
+    client.post(f"/decks/{deck_id}/details", data=data)
+    return deck_id
+
+
+def deck_names(resp):
+    return re.findall(r'class="deck-name">([^<]+)<', resp.get_data(as_text=True))
+
+
+def test_find_other_decks_search(client):
+    register(client, "bob")
+    add_deck(client, "Cell Biology", course="BIOL 21", professor="Dr. Lee")
+    add_deck(client, "Data Structures", course="CSEN 12", professor="Prof. Smith")
+    add_deck(client, "Secret notes", course="BIOL 21", public=False)
+    add_deck(client, "Empty biology deck", cards=0)
+    client.post("/logout")
+
+    register(client, "carol")
+    add_deck(client, "My own biology deck")
+
+    # No query: all other users' public, non-empty decks.
+    assert sorted(deck_names(client.get("/find"))) == ["Cell Biology", "Data Structures"]
+    # Case-insensitive, partial match across all fields.
+    assert deck_names(client.get("/find?q=biol")) == ["Cell Biology"]
+    assert deck_names(client.get("/find?q=smith")) == ["Data Structures"]
+    # Restricting to one field.
+    assert deck_names(client.get("/find?q=csen&field=course")) == ["Data Structures"]
+    assert deck_names(client.get("/find?q=csen&field=professor")) == []
+    assert deck_names(client.get("/find?q=lee&field=professor")) == ["Cell Biology"]
+    # LIKE wildcards are matched literally.
+    assert deck_names(client.get("/find?q=%25")) == []
+    assert b"No shared decks match" in client.get("/find?q=zzz").data
+
+
+def test_view_and_copy_shared_deck(app, client):
+    register(client, "bob")
+    public_id = add_deck(client, "Cell Biology", course="BIOL 21", cards=2)
+    private_id = add_deck(client, "Secret notes", public=False)
+    client.post("/logout")
+
+    register(client, "carol")
+    resp = client.get(f"/find/{public_id}")
+    assert b"Cell Biology" in resp.data and b"shared by bob" in resp.data
+    assert client.get(f"/find/{private_id}").status_code == 404
+    assert client.post(f"/find/{private_id}/copy").status_code == 404
+    # Viewing a shared deck doesn't grant edit access.
+    assert client.get(f"/decks/{public_id}").status_code == 404
+
+    resp = client.post(f"/find/{public_id}/copy", follow_redirects=True)
+    assert b"Copied" in resp.data
+    with app.app_context():
+        carol = User.query.filter_by(username="carol").one()
+        copy = Deck.query.filter_by(user_id=carol.id).one()
+        assert copy.course == "BIOL 21"
+        assert [(c.front, c.known) for c in copy.cards] == [("q0", False), ("q1", False)]
+        assert len(db.session.get(Deck, public_id).cards) == 2  # original untouched
+
+
+def test_decks_are_private_by_default(app, client):
+    register(client, "bob")
+    deck_id = add_deck(client, "Cell Biology", public=False)
+    assert b"Private" in client.get(f"/decks/{deck_id}").data
+    with app.app_context():
+        assert db.session.get(Deck, deck_id).visibility == "private"
+    client.post("/logout")
+
+    register(client, "carol")
+    assert deck_names(client.get("/find")) == []
+    assert client.get(f"/find/{deck_id}").status_code == 404
+    client.post("/logout")
+
+    # Owner makes it public, then private again.
+    client.post("/", data={"username": "bob", "password": "password123"})
+    client.post(f"/decks/{deck_id}/details", data={"visibility": "public"})
+    assert b"Public" in client.get(f"/decks/{deck_id}").data
+    client.post("/logout")
+    client.post("/", data={"username": "carol", "password": "password123"})
+    assert deck_names(client.get("/find")) == ["Cell Biology"]
+    client.post("/logout")
+
+    client.post("/", data={"username": "bob", "password": "password123"})
+    client.post(f"/decks/{deck_id}/details", data={})  # no visibility sent -> private
+    with app.app_context():
+        assert db.session.get(Deck, deck_id).visibility == "private"
+
+
+def test_existing_decks_become_private_on_upgrade(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    # A database from the version where decks were shared by default.
+    conn.execute("CREATE TABLE decks (id INTEGER PRIMARY KEY, name VARCHAR(100) NOT NULL, "
+                 "user_id INTEGER NOT NULL, created_at DATETIME NOT NULL, "
+                 "is_public BOOLEAN DEFAULT 1 NOT NULL)")
+    conn.execute("INSERT INTO decks (id, name, user_id, created_at) VALUES (1, 'old', 1, '2026-01-01')")
+    conn.commit()
+    conn.close()
+
+    create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{path}"})
+    conn = sqlite3.connect(path)
+    assert conn.execute("SELECT visibility FROM decks").fetchone() == ("private",)
+    conn.close()

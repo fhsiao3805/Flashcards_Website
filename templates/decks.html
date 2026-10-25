@@ -18,7 +18,7 @@
           <p class="deck-course">{{ deck.course or '' }}{% if deck.course and deck.professor %} · {% endif %}{{ deck.professor or '' }}</p>
         {% endif %}
         <p class="muted">{{ deck.cards|length }} card{{ '' if deck.cards|length == 1 else 's' }}
-          · {{ deck.known_count }} known</p>
+          · {{ deck.known_count }} known · {% include "_visibility_badge.html" %}</p>
         <div class="row">
           <a class="btn btn-small" href="{{ url_for('deck_detail', deck_id=deck.id) }}">Manage</a>
           {% if deck.cards %}
