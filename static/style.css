@@ -115,6 +115,8 @@ textarea { resize: vertical; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-hover); }
+.btn-sky { background: #87ceeb; border-color: #87ceeb; color: #0b2a3a; }
+.btn-sky:hover { background: #6cc0e5; border-color: #6cc0e5; }
 .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
 .btn-warn { background: var(--warn); border-color: var(--warn); color: #fff; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
