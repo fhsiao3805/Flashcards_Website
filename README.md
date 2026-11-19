@@ -38,8 +38,7 @@ models.py           User, Deck, and Card database models
 templates/          Jinja templates (login, register, decks, deck, study, ...)
 static/             style.css and app.js (card flip, reset pop-up, shortcuts)
 tests/              pytest test suite
-requirements.txt    Runtime dependencies
-requirements-dev.txt  Runtime dependencies plus pytest
+requirements.txt    Dependencies (including pytest)
 Procfile            Start command for Heroku/Railway-style hosts
 render.yaml         One-click Render blueprint (web service + Postgres)
 ```
@@ -60,7 +59,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # 2. Install dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # 3. Start the app
 flask --app app run --debug
@@ -76,7 +75,7 @@ py -m venv .venv
 .venv\Scripts\Activate.ps1
 
 # 2. Install dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # 3. Start the app
 flask --app app run --debug
