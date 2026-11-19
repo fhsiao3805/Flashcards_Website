@@ -5,3 +5,6 @@ instance/
 *.db
 .env
 .pytest_cache/
+
+# Temporary credential file written by google-github-actions/auth in CI
+gha-creds-*.json
