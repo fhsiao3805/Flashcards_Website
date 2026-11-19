@@ -21,3 +21,33 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests -v
+
+  deploy:
+    needs: pytest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-cloud-run
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # The key comes only from the GitHub secret. The action writes it to a
+      # temporary gha-creds-*.json file on the runner, which .gitignore keeps
+      # out of both commits and the --source upload.
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        run: >-
+          gcloud run deploy flashcards-website-123
+          --source .
+          --project flashcards-website-123
+          --region us-west1
+          --allow-unauthenticated
+          --quiet
